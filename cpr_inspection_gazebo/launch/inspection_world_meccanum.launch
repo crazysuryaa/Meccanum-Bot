@@ -1,0 +1,60 @@
+<launch>
+    <param name="inspection_geom" command="$(find xacro)/xacro --inorder '$(find cpr_inspection_gazebo)/urdf/inspection_geometry.urdf.xacro'" />
+
+    <!-- <arg name="platform" default="$(optenv CPR_GAZEBO_PLATFORM husky)" />
+
+    <arg name="robot_x" default="0.0"/>
+    <arg name="robot_y" default="-10.0"/>
+    <arg name="robot_z" default="1.0"/>
+    <arg name="robot_yaw" default="0.0" /> -->
+
+    <arg name="world_x" default="0.0"/>
+    <arg name="world_y" default="0.0"/>
+    <arg name="world_z" default="0.0"/>
+    <arg name="world_yaw" default="0.0"/>
+
+    <arg name="use_sim_time" default="true" />
+    <arg name="gui" default="true" />
+    <arg name="headless" default="false" />
+    <arg name="world_name" default="$(find cpr_inspection_gazebo)/worlds/inspection_world.world" />
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+      <arg name="debug" value="0" />
+      <arg name="gui" value="$(arg gui)" />
+      <arg name="use_sim_time" value="$(arg use_sim_time)" />
+      <arg name="headless" value="$(arg headless)" />
+      <arg name="world_name" value="$(arg world_name)" />
+    </include>
+
+    <node name="inspection_world_spawner" pkg="gazebo_ros" type="spawn_model"
+      args="-urdf -model inspection_geom -param inspection_geom -x $(arg world_x) -y $(arg world_y) -z $(arg world_z) -Y $(arg world_yaw)" />
+<!-- <include file="$(find cpr_inspection_gazebo)/launch/nexus_4wd_mecanum_description.launch" /> -->
+	<param name="robot_description" command="$(find xacro)/xacro --inorder $(find cpr_inspection_gazebo)/urdf/nexus_4wd_mecanum.xacro" />
+
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+  <!-- Spawn the robot -->
+  <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model"
+        args="-urdf -model nexus_4wd_mecanum -param robot_description -x 0 -y 0 -z 0.5" />
+  
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" ></node>
+
+    <node name="Rsp" pkg="robot_state_publisher" type="robot_state_publisher" output="screen"/>
+
+
+
+    <node pkg="gmapping" type="slam_gmapping" name="maping_node">
+        <param name="base_frame" value="base_link" />
+        <param name="odom_frame" value="odom" />
+        <param name="delta" value="0.1" />
+    </node>
+
+    <node pkg="move_base" type="move_base" name="Base_move" output="screen">
+        <param name="controller_frequency" value="10.0" />
+        <rosparam file="$(find cpr_inspection_gazebo)/config/costmap_common_params.yaml" command="load" ns="global_costmap"/>
+        <rosparam file="$(find  cpr_inspection_gazebo)/config/costmap_common_params.yaml" command="load" ns="local_costmap"/>
+        <rosparam file="$(find  cpr_inspection_gazebo)/config/local_costmap_params.yaml" command="load" />
+        <rosparam file="$(find  cpr_inspection_gazebo)/config/global_costmap_params.yaml" command="load" />
+        <rosparam file="$(find  cpr_inspection_gazebo)/config/trajectory_planner.yaml" command="load" />
+      </node>
+    <node name="Joint_tester" pkg="rviz" type="rviz" output="screen" args="-d $(find  cpr_inspection_gazebo)/config/map.rviz"/>
+
+</launch>
